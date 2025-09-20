@@ -1,0 +1,90 @@
+<!-- frontend/index.html (copy this) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Real Face</title>
+  <style>
+    /* (keep your full CSS from earlier or simplify) */
+    body { font-family: system-ui, sans-serif; background:#f5f7ff; color:#222; padding:20px;}
+    .container{max-width:900px;margin:0 auto;}
+    header{background:linear-gradient(90deg,#4361ee,#3a0ca3);color:#fff;padding:24px;border-radius:10px;}
+    .upload {background:#fff;padding:20px;border-radius:8px;margin-top:20px;}
+    .btn{background:#4361ee;color:#fff;padding:10px 14px;border:none;border-radius:6px;cursor:pointer;}
+    .results{background:#fff;padding:16px;border-radius:8px;margin-top:16px;display:none;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AI Content Detector</h1>
+      <p>Upload image / video / audio to check if it's likely AI-generated</p>
+    </header>
+
+    <div class="upload">
+      <label>
+        Choose type:
+        <select id="typeSelect">
+          <option value="image">Image</option>
+          <option value="video">Video</option>
+          <option value="audio">Audio</option>
+        </select>
+      </label>
+      <div style="margin-top:12px">
+        <input type="file" id="fileInput" />
+      </div>
+      <div style="margin-top:12px">
+        <button id="analyzeBtn" class="btn">Analyze</button>
+      </div>
+    </div>
+
+    <div id="results" class="results">
+      <h3>Result</h3>
+      <div id="scoreLine">Probability AI-generated: <strong id="scorePct">-</strong></div>
+      <pre id="rawDetail" style="white-space:pre-wrap;margin-top:8px;"></pre>
+    </div>
+  </div>
+
+<script>
+  // ====== UPDATE THIS BEFORE DEPLOYING ======
+  // While testing on your computer keep backend at http://localhost:8000
+  // After deploying backend to Render, replace this with your Render URL, e.g.:
+  // const API_BASE = "https://your-backend.onrender.com"
+  const API_BASE = "http://localhost:8000";
+  // =========================================
+
+  document.getElementById('analyzeBtn').addEventListener('click', async ()=> {
+    const f = document.getElementById('fileInput').files[0];
+    if(!f){ alert('Please select a file'); return; }
+    const type = document.getElementById('typeSelect').value;
+    let endpoint = '/analyze/image';
+    if(type === 'video') endpoint = '/analyze/video';
+    if(type === 'audio') endpoint = '/analyze/audio';
+
+    const fd = new FormData();
+    fd.append('file', f);
+
+    document.getElementById('analyzeBtn').textContent = 'Analyzing...';
+    document.getElementById('analyzeBtn').disabled = true;
+
+    try {
+      const res = await fetch(API_BASE + endpoint, { method: 'POST', body: fd });
+      const data = await res.json();
+      // Display results
+      const score = data.score ?? data.mean_score ?? 0;
+      const pct = Math.round((score||0)*100);
+      document.getElementById('scorePct').textContent = pct + '%';
+      document.getElementById('rawDetail').textContent = JSON.stringify(data.detail ?? data, null, 2);
+      document.getElementById('results').style.display = 'block';
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      document.getElementById('analyzeBtn').textContent = 'Analyze';
+      document.getElementById('analyzeBtn').disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
+
